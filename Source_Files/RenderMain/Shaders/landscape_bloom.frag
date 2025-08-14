@@ -13,12 +13,24 @@ varying vec3 relDir;
 varying vec4 vertexColor;
 const float zoom = 1.205;
 const float pitch_adjust = 0.955;
+
+vec4 texture2DNearAA(sampler2D tex, vec2 p) {
+	vec2 texture_size = vec2(textureSize(tex, 0));
+	vec2 texel_size = vec2(1.0, 1.0) / texture_size;
+	vec2 p_width = fwidth(p);
+	vec2 box_size = clamp(p_width * texture_size, 1e-5, 1.0);
+	vec2 texel = p * texture_size;
+	vec2 texel_offset = clamp((fract(texel) - (1.0 - box_size)) / box_size, 0.0, 1.0);
+	vec2 uv = (floor(texel) + 0.5 + texel_offset) * texel_size;
+	return texture2D(tex, uv);
+}
+
 void main(void) {
 	vec3 facev = vec3(cos(yaw), sin(yaw), sin(pitch));
 	vec3 relv  = normalize(relDir);
 	float x = relv.x / (relv.z * zoom) + atan(facev.x, facev.y);
 	float y = relv.y / (relv.z * zoom) - (facev.z * pitch_adjust);
-	vec4 color = texture2D(texture0, vec2(offsetx - x * scalex, offsety - y * scaley));
+	vec4 color = texture2DNearAA(texture0, vec2(offsetx - x * scalex, offsety - y * scaley));
 	float intensity = clamp(bloomScale, 0.0, 1.0);
 
 #ifdef GAMMA_CORRECTED_BLENDING

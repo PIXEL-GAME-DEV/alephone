@@ -24,6 +24,17 @@ float getFogFactor(float distance) {
 	}
 }
 
+vec4 texture2DNearAA(sampler2D tex, vec2 p) {
+	vec2 texture_size = vec2(textureSize(tex, 0));
+	vec2 texel_size = vec2(1.0, 1.0) / texture_size;
+	vec2 p_width = fwidth(p);
+	vec2 box_size = clamp(p_width * texture_size, 1e-5, 1.0);
+	vec2 texel = p * texture_size;
+	vec2 texel_offset = clamp((fract(texel) - (1.0 - box_size)) / box_size, 0.0, 1.0);
+	vec2 uv = (floor(texel) + 0.5 + texel_offset) * texel_size;
+	return texture2D(tex, uv);
+}
+
 void main (void) {
 	vec3 texCoords = vec3(gl_TexCoord[0].xy, 0.0);
 	vec3 normXY = normalize(viewXY);
@@ -50,7 +61,7 @@ void main (void) {
 	if (glow > 0.001) {
 		diffuse = 1.0;
 	}
-	vec4 color = texture2D(texture0, texCoords.xy);
+	vec4 color = texture2DNearAA(texture0, texCoords.xy);
 	intensity = clamp(intensity * diffuse, glow, 1.0);
 #ifdef GAMMA_CORRECTED_BLENDING
 	intensity = intensity * intensity; // approximation of pow(intensity, 2.2)

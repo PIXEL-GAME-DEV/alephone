@@ -36,7 +36,19 @@ float round(float n){
 	float nSign = 1.0; 
 	if ( n < 0.0 ) { nSign = -1.0; }; 
 	return nSign * floor(abs(n)+0.5); 
-} 
+}
+
+vec4 texture2DNearAA(sampler2D tex, vec2 p) {
+	vec2 texture_size = vec2(textureSize(tex, 0));
+	vec2 texel_size = vec2(1.0, 1.0) / texture_size;
+	vec2 p_width = fwidth(p);
+	vec2 box_size = clamp(p_width * texture_size, 1e-5, 1.0);
+	vec2 texel = p * texture_size;
+	vec2 texel_offset = clamp((fract(texel) - (1.0 - box_size)) / box_size, 0.0, 1.0);
+	vec2 uv = (floor(texel) + 0.5 + texel_offset) * texel_size;
+	return texture2D(tex, uv);
+}
+
 void main(void) {
 	float blockSize = round((logicalHeight/320.0) * (pixelHeight/logicalHeight));
 	blockSize = max(blockSize, 1.0);
@@ -48,7 +60,7 @@ void main(void) {
 	float sg = rand(entropy*sr); 
 	float sb = rand(entropy*sg); 
 	vec3 intensity = vec3(sr, sg, sb); 
-	vec4 color = texture2D(texture0, gl_TexCoord[0].xy);
+	vec4 color = texture2DNearAA(texture0, gl_TexCoord[0].xy);
 	float dropFactor = max(max(intensity.r, intensity.g), intensity.b);
 	dropFactor = dropFactor*dropFactor*dropFactor;
 	if( dropFactor < transferFadeOut ) {color.a = 0.0;} 
